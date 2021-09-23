@@ -21,16 +21,34 @@ socket.emit("join_room", roomName, userName);
 socket.on("room_status", function (room) {
   console.log("room_status: " + room);
   var h1 = document.createElement("h1");
-  var h2 = document.createElement("h2");
+  var h2White = document.createElement("h2");
+  var h2Black = document.createElement("h2");
+  var h2Vs = document.createElement("h2");
   var h3 = document.createElement("h3");
+
+  var b = document.createElement("b");
+
   var whiteName = room.white.name ? room.white.name : "Waiting for Player";
   var blackName = room.black.name ? room.black.name : "Waiting for Player";
+
   h1.textContent = `${room.name}`;
-  h2.textContent = `${whiteName} vs ${blackName}`;
+  h2White.textContent = `${whiteName}`;
+  h2Black.textContent = `${blackName}`;
+  h2Vs.textContent = ` vs `;
+  if (game.turn() === "w") {
+    h2White.classList.add("colored");
+    h2Black.classList.remove("colored");
+  } else {
+    h2Black.classList.add("colored");
+    h2White.classList.remove("colored");
+  }
+
   h3.textContent = `Spectators: ${room.spectators.length}`;
   topParagraph.textContent = "";
   topParagraph.appendChild(h1);
-  topParagraph.appendChild(h2);
+  topParagraph.appendChild(h2White);
+  topParagraph.appendChild(h2Vs);
+  topParagraph.appendChild(h2Black);
   topParagraph.appendChild(h3);
   if (room.fen !== null) {
     game.load(room.fen);

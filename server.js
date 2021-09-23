@@ -78,6 +78,7 @@ io.on("connection", (socket) => {
     var room = rooms.find((room) => room.name === roomNameSocket);
     room.fen = game;
     socket.to(roomNameSocket).emit("move", source, target);
+    io.to(room.name).emit("room_status", room);
   });
 
   socket.on("disconnect", () => {

@@ -8,6 +8,13 @@ body {
     color: white;
   }
 }
+h2 {
+  display: inline;
+  width: 30%;
+}
+.colored {
+  color: #5a6bc9;
+}
 
 .centered {
   /* margin: auto; */
