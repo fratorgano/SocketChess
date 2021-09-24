@@ -12,6 +12,7 @@ var blackSquareGrey = "#696969";
 var socket = io();
 var side;
 var turn = game.turn();
+var lastFen = "";
 
 var topParagraph = document.getElementById("top");
 var bottomParagraph = document.getElementById("bottom");
@@ -19,19 +20,88 @@ var bottomParagraph = document.getElementById("bottom");
 socket.emit("join_room", roomName, userName);
 
 socket.on("room_status", function (room) {
-  console.log("room_status: " + room);
+  if (room.fen !== null) {
+    game.load(room.fen);
+    board.position(room.fen);
+  }
+
   var h1 = document.createElement("h1");
   var h2White = document.createElement("h2");
   var h2Black = document.createElement("h2");
   var h2Vs = document.createElement("h2");
   var h3 = document.createElement("h3");
 
-  var b = document.createElement("b");
-
   var whiteName = room.white.name ? room.white.name : "Waiting for Player";
   var blackName = room.black.name ? room.black.name : "Waiting for Player";
 
-  h1.textContent = `${room.name}`;
+  //h1.textContent = `${room.name} `;
+  //h1.id = "roomName";
+
+  var restartButton = document.createElement("button");
+  restartButton.id = "restartButton";
+  console.log(room.restart);
+  if (room.restart == "") {
+    restartButton.classList.remove("background-colored");
+  } else {
+    restartButton.classList.add("background-colored");
+  }
+  restartButton.textContent = "Restart game";
+  restartButton.onclick = function () {
+    if (room.restart !== "") {
+      console.log("requesting game restart");
+      socket.emit("restart_request");
+      //button.classList.remove("background-colored");
+    } else {
+      socket.emit("restart_request");
+      restartButton.classList.add("background-colored");
+    }
+  };
+
+  var switchSidesButton = document.createElement("button");
+  switchSidesButton.id = "switchSidesButton";
+  switchSidesButton.textContent = "Switch sides";
+  if (room.switch == "") {
+    switchSidesButton.classList.remove("background-colored");
+  } else {
+    switchSidesButton.classList.add("background-colored");
+  }
+  switchSidesButton.onclick = function () {
+    console.log(room.switch, side);
+    if (
+      (room.switch == "b" && side == "w") ||
+      (room.switch == "w" && side == "b")
+    ) {
+      socket.emit("switch_grant");
+      switchSidesButton.classList.remove("background-colored");
+    } else {
+      socket.emit("switch_request");
+      switchSidesButton.classList.add("background-colored");
+    }
+  };
+
+  var showLastMoveButton = document.createElement("button");
+  showLastMoveButton.id = "showLastMoveButton";
+  showLastMoveButton.textContent = "Show last move";
+  showLastMoveButton.onclick = function () {
+    if (game.validate_fen(lastFen)) {
+      if (showLastMoveButton.classList.contains("background-colored")) {
+        showLastMoveButton.classList.remove("background-colored");
+        board.position(game.fen());
+      } else {
+        showLastMoveButton.classList.add("background-colored");
+        board.position(lastFen);
+      }
+    }
+  };
+
+  h1.textContent = "";
+  if (side !== "s") {
+    h1.appendChild(restartButton);
+    h1.appendChild(switchSidesButton);
+  }
+
+  h1.appendChild(showLastMoveButton);
+
   h2White.textContent = `${whiteName}`;
   h2Black.textContent = `${blackName}`;
   h2Vs.textContent = ` vs `;
@@ -50,14 +120,10 @@ socket.on("room_status", function (room) {
   topParagraph.appendChild(h2Vs);
   topParagraph.appendChild(h2Black);
   topParagraph.appendChild(h3);
-  if (room.fen !== null) {
-    game.load(room.fen);
-    board.position(room.fen);
-  }
 });
 
 socket.on("side", function (sideServer) {
-  console.log("side: " + sideServer);
+  //console.log("side: " + sideServer);
   side = sideServer;
   if (side == "b") {
     board.orientation("black");
@@ -67,7 +133,8 @@ socket.on("side", function (sideServer) {
 });
 
 socket.on("move", function (source, target) {
-  console.log("move: " + source + " " + target);
+  //console.log("move: " + source + " " + target);
+  lastFen = game.fen();
 
   game.move({
     from: source,
@@ -80,6 +147,17 @@ socket.on("move", function (source, target) {
   if (game.game_over()) {
     alert(reasonGameOver());
   }
+});
+
+socket.on("restart_request", function () {
+  console.log("restart_request");
+  var button = document.getElementById("restartButton");
+  button.classList.add("background-colored");
+});
+
+socket.on("switch_request", function () {
+  var button = document.getElementById("switchSidesButton");
+  button.classList.add("background-colored");
 });
 
 function reasonGameOver() {
@@ -124,13 +202,13 @@ function findCheckKing() {
   return kingPosition;
 }
 
-socket.on("fen", function (fenString) {
-  console.log("fenString: " + fenString);
+/* socket.on("fen", function (fenString) {
+  //console.log("fenString: " + fenString);
   if (fenString !== null) {
     game.load(fenString);
     board.position(fenString);
   }
-});
+}); */
 
 function removeGreySquares() {
   $("#myBoard .square-55d63").css("background", "");
@@ -151,7 +229,7 @@ function greySquare(square) {
 function onDragStart(source, piece) {
   // do not pick up pieces if it's not your turn
   if (game.turn() !== side) {
-    console.log("not your turn");
+    //console.log("not your turn");
     return false;
   }
 
@@ -169,6 +247,7 @@ function onDragStart(source, piece) {
 
 function onDrop(source, target) {
   removeGreySquares();
+  lastFen = game.fen();
 
   // see if the move is legal
   var move = game.move({

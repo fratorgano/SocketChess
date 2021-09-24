@@ -1,4 +1,3 @@
-const e = require("cors");
 const express = require("express");
 const app = express();
 const http = require("http");
@@ -45,6 +44,8 @@ io.on("connection", (socket) => {
       black: {},
       spectators: [],
       fen: "",
+      restart: "",
+      switch: "",
     });
   });
 
@@ -79,6 +80,68 @@ io.on("connection", (socket) => {
     room.fen = game;
     socket.to(roomNameSocket).emit("move", source, target);
     io.to(room.name).emit("room_status", room);
+  });
+
+  socket.on("restart_request", () => {
+    var room = rooms.find((room) => room.name === roomNameSocket);
+    if (socket.id === room.white.id) {
+      if (room.restart == "b") {
+        console.log("restart granted by white");
+        socket.to(roomNameSocket).emit("restart_game");
+        room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        room.restart = "";
+        io.to(room.name).emit("room_status", room);
+      } else {
+        console.log("white asked for restart");
+        room.restart = "w";
+        io.to(room.black.id).emit("restart_request");
+      }
+    }
+    if (socket.id === room.black.id) {
+      if (room.restart == "w") {
+        console.log("restart granted by black");
+        socket.to(roomNameSocket).emit("restart_game");
+        room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        room.restart = "";
+        io.to(room.name).emit("room_status", room);
+      } else {
+        console.log("black asked for restart");
+        room.restart = "b";
+        io.to(room.white.id).emit("restart_request");
+      }
+    }
+  });
+
+  socket.on("switch_request", () => {
+    console.log("switch request");
+    var room = rooms.find((room) => room.name === roomNameSocket);
+    if (socket.id === room.white.id) {
+      room.switch = "w";
+      io.to(room.black.id).emit("switch_request");
+    }
+    if (socket.id === room.black.id) {
+      room.switch = "b";
+      io.to(room.white.id).emit("switch_request");
+    }
+    io.to(room.name).emit("room_status", room);
+  });
+
+  socket.on("switch_grant", () => {
+    var room = rooms.find((room) => room.name === roomNameSocket);
+    if (
+      (room.switch == "w" && socket.id == room.black.id) ||
+      (room.switch == "b" && socket.id == room.white.id)
+    ) {
+      console.log("switching sides");
+      room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      var white = room.white;
+      room.white = room.black;
+      room.black = white;
+      room.switch = "";
+      io.to(room.white.id).emit("side", "w");
+      io.to(room.black.id).emit("side", "b");
+      io.to(room.name).emit("room_status", room);
+    }
   });
 
   socket.on("disconnect", () => {
