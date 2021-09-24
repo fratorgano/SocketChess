@@ -1,5 +1,6 @@
 body {
   font-family: "Montserrat", sans-serif;
+  margin-bottom: 60px; /* Margin bottom by footer height */
 }
 
 h1 {
@@ -37,6 +38,18 @@ button {
   width: 50%;
   margin-left: auto;
   margin-right: auto;
+}
+
+.footer {
+  position: absolute;
+  text-align: right;
+  bottom: 0;
+  width: 95%;
+  height: 60px; /* Set the fixed height of the footer here */
+  padding-right: 2%;
+}
+.footer a {
+  color: inherit;
 }
 
 @media (prefers-color-scheme: dark) {
