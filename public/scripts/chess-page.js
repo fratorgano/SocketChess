@@ -1,10 +1,9 @@
-// NOTE: this example uses the chess.js library:
-// https://github.com/jhlywa/chess.js
-
+// getting values from get request
 var params = new URLSearchParams(window.location.search);
 var roomName = params.get("roomName");
 var userName = params.get("userName");
 
+// preparing variables
 var board = null;
 var game = new Chess();
 var whiteSquareGrey = "#a9a9a9";
@@ -15,50 +14,56 @@ var turn = game.turn();
 var lastFen = "";
 
 var topParagraph = document.getElementById("top");
-var bottomParagraph = document.getElementById("bottom");
 
+// joining socket room
 socket.emit("join_room", roomName, userName);
 
+// updating page based on room status
 socket.on("room_status", function (room) {
+  // update board
   if (room.fen !== null) {
     game.load(room.fen);
     board.position(room.fen);
   }
-
+  // creating elements to display
   var h1 = document.createElement("h1");
   var h2White = document.createElement("h2");
   var h2Black = document.createElement("h2");
   var h2Vs = document.createElement("h2");
   var h3 = document.createElement("h3");
+  var restartButton = document.createElement("button");
+  var switchSidesButton = document.createElement("button");
+  var showLastMoveButton = document.createElement("button");
 
+  // settings ids
+  restartButton.id = "restartButton";
+  switchSidesButton.id = "switchSidesButton";
+  showLastMoveButton.id = "showLastMoveButton";
+
+  // setting player's names
   var whiteName = room.white.name ? room.white.name : "Waiting for Player";
   var blackName = room.black.name ? room.black.name : "Waiting for Player";
 
-  //h1.textContent = `${room.name} `;
-  //h1.id = "roomName";
-
-  var restartButton = document.createElement("button");
-  restartButton.id = "restartButton";
-  console.log(room.restart);
+  // settings restartButton status
   if (room.restart == "") {
     restartButton.classList.remove("background-colored");
   } else {
     restartButton.classList.add("background-colored");
   }
+
+  // creating logic for restart button
   restartButton.textContent = "Restart game";
   restartButton.onclick = function () {
     if (room.restart !== "") {
       console.log("requesting game restart");
       socket.emit("restart_request");
-      //button.classList.remove("background-colored");
     } else {
       socket.emit("restart_request");
       restartButton.classList.add("background-colored");
     }
   };
 
-  var switchSidesButton = document.createElement("button");
-  switchSidesButton.id = "switchSidesButton";
+  // creating logic for switchSides button
   switchSidesButton.textContent = "Switch sides";
   if (room.switch == "") {
     switchSidesButton.classList.remove("background-colored");
@@ -79,8 +84,7 @@ socket.on("room_status", function (room) {
     }
   };
 
-  var showLastMoveButton = document.createElement("button");
-  showLastMoveButton.id = "showLastMoveButton";
+  // creating logic for showLastMove button
   showLastMoveButton.textContent = "Show last move";
   showLastMoveButton.onclick = function () {
     if (game.validate_fen(lastFen)) {
@@ -94,17 +98,20 @@ socket.on("room_status", function (room) {
     }
   };
 
-  h1.textContent = "";
+  // setting buttons inside h1
+  // if you are a spectator, you can't switch sides or restart the game
   if (side !== "s") {
     h1.appendChild(restartButton);
     h1.appendChild(switchSidesButton);
   }
-
   h1.appendChild(showLastMoveButton);
 
+  // setting h2 texts
   h2White.textContent = `${whiteName}`;
   h2Black.textContent = `${blackName}`;
   h2Vs.textContent = ` vs `;
+
+  // setting h2 color based on game turn
   if (game.turn() === "w") {
     h2White.classList.add("colored");
     h2Black.classList.remove("colored");
@@ -114,7 +121,11 @@ socket.on("room_status", function (room) {
   }
 
   h3.textContent = `Spectators: ${room.spectators.length}`;
+
+  // clearing top paragraph
   topParagraph.textContent = "";
+
+  // appending elements to top paragraph
   topParagraph.appendChild(h1);
   topParagraph.appendChild(h2White);
   topParagraph.appendChild(h2Vs);
@@ -122,6 +133,7 @@ socket.on("room_status", function (room) {
   topParagraph.appendChild(h3);
 });
 
+// setting side based on server assignment
 socket.on("side", function (sideServer) {
   //console.log("side: " + sideServer);
   side = sideServer;
@@ -132,34 +144,45 @@ socket.on("side", function (sideServer) {
   }
 });
 
+// updating board based on the move made
 socket.on("move", function (source, target) {
   //console.log("move: " + source + " " + target);
+
+  //saving last fen to show last move
   lastFen = game.fen();
 
+  //move
   game.move({
     from: source,
     to: target,
     promotion: "q", // NOTE: always promote to a queen for example simplicity
   });
 
+  // update board
   board.position(game.fen());
 
+  //check if game is finished, if so, show reason
   if (game.game_over()) {
     alert(reasonGameOver());
   }
 });
 
+// handle restart_request from the other player
 socket.on("restart_request", function () {
-  console.log("restart_request");
+  //console.log("restart_request");
+  // update restartButton to show that there has been a request
   var button = document.getElementById("restartButton");
   button.classList.add("background-colored");
 });
 
+// handle switch_request from the other player
 socket.on("switch_request", function () {
+  // update switchSidesButton to show that there has been a request
   var button = document.getElementById("switchSidesButton");
   button.classList.add("background-colored");
 });
 
+// create string with reason why game is over
 function reasonGameOver() {
   if (game.in_checkmate()) {
     if (game.turn() === "w") {
@@ -182,38 +205,12 @@ function reasonGameOver() {
   }
 }
 
-function findCheck() {
-  if (game.in_check()) {
-    return findCheckKing();
-  }
-}
-
-function findCheckKing() {
-  var kingPosition;
-  game.board().forEach(function (row, rowIndex) {
-    row.forEach(function (square, squareIndex) {
-      if (square !== null && square.type === "k" && square.color === side) {
-        kingPosition = `${String.fromCharCode(97 + squareIndex)}${
-          8 - rowIndex
-        }`;
-      }
-    });
-  });
-  return kingPosition;
-}
-
-/* socket.on("fen", function (fenString) {
-  //console.log("fenString: " + fenString);
-  if (fenString !== null) {
-    game.load(fenString);
-    board.position(fenString);
-  }
-}); */
-
+// removes colored squares
 function removeGreySquares() {
   $("#myBoard .square-55d63").css("background", "");
 }
 
+// add color to a square
 function greySquare(square) {
   //console.log(square);
   var $square = $("#myBoard .square-" + square);
@@ -226,7 +223,8 @@ function greySquare(square) {
   $square.css("background", background);
 }
 
-function onDragStart(source, piece) {
+// handle when the player picks a piece up
+function onDragStart(_source, piece) {
   // do not pick up pieces if it's not your turn
   if (game.turn() !== side) {
     //console.log("not your turn");
@@ -245,8 +243,11 @@ function onDragStart(source, piece) {
   }
 }
 
+//handle when a player drops a piece
 function onDrop(source, target) {
+  // remove the colored squares that show possible moves
   removeGreySquares();
+  // save last fen to show last move
   lastFen = game.fen();
 
   // see if the move is legal
@@ -259,13 +260,16 @@ function onDrop(source, target) {
   // illegal move
   if (move === null) return "snapback";
 
+  // notify server about move
   socket.emit("move", source, target, game.fen());
 
+  //check if game is finished, if so, show reason
   if (game.game_over()) {
     alert(reasonGameOver());
   }
 }
 
+// handle mouse over a square by showing possible moves
 function onMouseoverSquare(square, piece) {
   // do not show moves if you are not playing
   if (side == "s") return false;
@@ -294,14 +298,17 @@ function onMouseoverSquare(square, piece) {
   }
 }
 
+// if mouse leaves a square, remove the possible moves highlight
 function onMouseoutSquare(square, piece) {
   removeGreySquares();
 }
 
+// handle multiple pieces moves like castling, en passant, pawn promotion
 function onSnapEnd() {
   board.position(game.fen());
 }
 
+// setting board config
 var config = {
   draggable: true,
   position: "start",
@@ -312,4 +319,6 @@ var config = {
   onMouseoverSquare: onMouseoverSquare,
   onSnapEnd: onSnapEnd,
 };
+
+// initializing board with config
 board = Chessboard("myBoard", config);
