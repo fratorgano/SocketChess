@@ -8,8 +8,9 @@
     "nodemon": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "fratorgano (https://fratorgano.me)",
+  "repository": "github:fratorgano/SocketChess",
+  "license": "MIT",
   "dependencies": {
     "@chrisoakman/chessboardjs": "^1.0.0",
     "chess.js": "^0.12.0",
