@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const http = require("http");
 const server = http.createServer(app);
+const { Chess } = require('chess.js');
 const { Server } = require("socket.io");
 const io = new Server(server);
 
@@ -55,7 +56,7 @@ io.on("connection", (socket) => {
       white: {},
       black: {},
       spectators: [],
-      fen: "",
+      fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
       restart: "",
       switch: "",
     });
@@ -95,55 +96,51 @@ io.on("connection", (socket) => {
     io.emit("room_list", rooms);
   });
 
-  // handling move event
-  socket.on("move", (source, target, game) => {
+  socket.on("move", (san) => {
     // find correct room
+    const room = rooms.find((room) => room.name === roomNameSocket);
+
+    if(room) {
+      // update game status
+      let game = new Chess(room.fen);
+      game.move(san);
+      room.fen = game.fen();
+
+      io.to(room.name).emit("update_board", room.fen);
+    }
+  });
+
+  socket.on("restart_request", () => {
     var room = rooms.find((room) => room.name === roomNameSocket);
-
-    // update game status
-    room.fen = game;
-    // share game status update with all members of this room
-    socket.to(roomNameSocket).emit("move", source, target);
-
-    // sending room_status event to all members of this room
+    switch (socket.id) {
+      case room.white.id:
+        room.restart = "w";
+        io.to(room.black.id).emit("restart_requested");
+        console.log("restart requested by white");
+        break;
+      case room.black.id:
+        room.restart = "b";
+        io.to(room.black.id).emit("restart_requested");
+        console.log("restart requested by black");
+        break;
+      default:
+        console.log("unknown user requested restart");
+        break;
+    }
     io.to(room.name).emit("room_status", room);
   });
 
-  // handling restart_request event
-  socket.on("restart_request", () => {
-    // find correct room
+  socket.on("restart_grant", () => {
     var room = rooms.find((room) => room.name === roomNameSocket);
-    if (socket.id === room.white.id) {
-      //if both parties agree to restart, restart game
-      if (room.restart == "b") {
-        console.log("restart granted by white");
-        // notify users of game restart
-        socket.to(roomNameSocket).emit("restart_game");
-        // set game status to starting position
-        room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        // remove restart value
-        room.restart = "";
-        // share updated room status with all members of this room
-        io.to(room.name).emit("room_status", room);
-      } else {
-        console.log("white asked for restart");
-        room.restart = "w";
-        io.to(room.black.id).emit("restart_request");
-      }
-    }
-    //same as above but from black side
-    if (socket.id === room.black.id) {
-      if (room.restart == "w") {
-        console.log("restart granted by black");
-        socket.to(roomNameSocket).emit("restart_game");
-        room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-        room.restart = "";
-        io.to(room.name).emit("room_status", room);
-      } else {
-        console.log("black asked for restart");
-        room.restart = "b";
-        io.to(room.white.id).emit("restart_request");
-      }
+    console.log("restart_grant");
+    if (
+      (room.restart == "w" && socket.id == room.black.id) ||
+      (room.restart == "b" && socket.id == room.white.id)
+    ) {
+      console.log("restart granted");
+      room.fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      room.restart = "";
+      io.to(room.name).emit("room_status", room);
     }
   });
 
@@ -151,13 +148,21 @@ io.on("connection", (socket) => {
   socket.on("switch_request", () => {
     console.log("switch request");
     var room = rooms.find((room) => room.name === roomNameSocket);
-    if (socket.id === room.white.id) {
-      room.switch = "w";
-      io.to(room.black.id).emit("switch_request");
-    }
-    if (socket.id === room.black.id) {
-      room.switch = "b";
-      io.to(room.white.id).emit("switch_request");
+
+    switch (socket.id) {
+      case room.white.id:
+        room.switch = "w";
+        io.to(room.black.id).emit("switch_requested");
+        console.log("switch requested by white");
+        break;
+      case room.black.id:
+        room.switch = "b";
+        io.to(room.black.id).emit("switch_requested");
+        console.log("switch requested by black");
+        break;
+      default:
+        console.log("unknown user requested switch");
+        break;
     }
     io.to(room.name).emit("room_status", room);
   });
@@ -174,6 +179,7 @@ io.on("connection", (socket) => {
       room.white = room.black;
       room.black = white;
       room.switch = "";
+      room.restart = "";
       io.to(room.white.id).emit("side", "w");
       io.to(room.black.id).emit("side", "b");
       io.to(room.name).emit("room_status", room);

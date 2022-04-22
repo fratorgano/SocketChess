@@ -15,6 +15,21 @@ var lastFen = "";
 
 var topParagraph = document.getElementById("top");
 
+// setting board config
+var config = {
+  draggable: true,
+  position: "start",
+  pieceTheme: "images/pieces/{piece}.png",
+  onDragStart: onDragStart,
+  onDrop: onDrop,
+  onMouseoutSquare: onMouseoutSquare,
+  onMouseoverSquare: onMouseoverSquare,
+  onSnapEnd: onSnapEnd,
+};
+
+// initializing board with config
+board = Chessboard("myBoard", config);
+
 // joining socket room
 socket.emit("join_room", roomName, userName);
 
@@ -39,6 +54,8 @@ socket.on("room_status", function (room) {
   restartButton.id = "restartButton";
   switchSidesButton.id = "switchSidesButton";
   showLastMoveButton.id = "showLastMoveButton";
+  h2White.id = "h2White";
+  h2Black.id = "h2Black";
 
   // setting player's names
   var whiteName = room.white.name ? room.white.name : "Waiting for Player";
@@ -54,12 +71,12 @@ socket.on("room_status", function (room) {
   // creating logic for restart button
   restartButton.textContent = "Restart game";
   restartButton.onclick = function () {
-    if (room.restart !== "") {
-      console.log("requesting game restart");
+    if (!room.restart) {
+      console.log("requesting restart");
       socket.emit("restart_request");
-    } else {
-      socket.emit("restart_request");
-      restartButton.classList.add("background-colored");
+    }else if (room.restart != side) {
+      console.log("granting restart");
+      socket.emit("restart_grant");
     }
   };
 
@@ -71,29 +88,29 @@ socket.on("room_status", function (room) {
     switchSidesButton.classList.add("background-colored");
   }
   switchSidesButton.onclick = function () {
-    console.log(room.switch, side);
-    if (
-      (room.switch == "b" && side == "w") ||
-      (room.switch == "w" && side == "b")
-    ) {
-      socket.emit("switch_grant");
-      switchSidesButton.classList.remove("background-colored");
-    } else {
+    if (!room.switch) {
+      console.log("requesting switch");
       socket.emit("switch_request");
-      switchSidesButton.classList.add("background-colored");
+    }else if (room.switch != side) {
+      console.log("granting switch");
+      socket.emit("switch_grant");
     }
   };
 
   // creating logic for showLastMove button
   showLastMoveButton.textContent = "Show last move";
   showLastMoveButton.onclick = function () {
+    console.log(lastFen==game.fen());
     if (game.validate_fen(lastFen)) {
+      // console.log("last fen validated");
       if (showLastMoveButton.classList.contains("background-colored")) {
         showLastMoveButton.classList.remove("background-colored");
         board.position(game.fen());
+        // console.log("used game.fen()");
       } else {
         showLastMoveButton.classList.add("background-colored");
         board.position(lastFen);
+        // console.log("used lastFen");
       }
     }
   };
@@ -144,43 +161,10 @@ socket.on("side", function (sideServer) {
   }
 });
 
-// updating board based on the move made
-socket.on("move", function (source, target) {
-  //console.log("move: " + source + " " + target);
-
-  //saving last fen to show last move
-  lastFen = game.fen();
-
-  //move
-  game.move({
-    from: source,
-    to: target,
-    promotion: "q", // NOTE: always promote to a queen for example simplicity
-  });
-
+socket.on('update_board', (fen) => {
   // update board
-  board.position(game.fen());
-
-  //check if game is finished, if so, show reason
-  if (game.game_over()) {
-    alert(reasonGameOver());
-  }
-});
-
-// handle restart_request from the other player
-socket.on("restart_request", function () {
-  //console.log("restart_request");
-  // update restartButton to show that there has been a request
-  var button = document.getElementById("restartButton");
-  button.classList.add("background-colored");
-});
-
-// handle switch_request from the other player
-socket.on("switch_request", function () {
-  // update switchSidesButton to show that there has been a request
-  var button = document.getElementById("switchSidesButton");
-  button.classList.add("background-colored");
-});
+  updateBoard(fen)
+})
 
 // create string with reason why game is over
 function reasonGameOver() {
@@ -225,6 +209,9 @@ function greySquare(square) {
 
 // handle when the player picks a piece up
 function onDragStart(_source, piece) {
+  // reset showLastMoveButton
+  showLastMoveButton.classList.remove("background-colored");
+
   // do not pick up pieces if it's not your turn
   if (game.turn() !== side) {
     //console.log("not your turn");
@@ -247,26 +234,23 @@ function onDragStart(_source, piece) {
 function onDrop(source, target) {
   // remove the colored squares that show possible moves
   removeGreySquares();
-  // save last fen to show last move
+
   lastFen = game.fen();
 
   // see if the move is legal
-  var move = game.move({
+  const move = game.move({
     from: source,
     to: target,
     promotion: "q", // NOTE: always promote to a queen for example simplicity
   });
 
+  updateBoard(game.fen());
+
   // illegal move
   if (move === null) return "snapback";
 
   // notify server about move
-  socket.emit("move", source, target, game.fen());
-
-  //check if game is finished, if so, show reason
-  if (game.game_over()) {
-    alert(reasonGameOver());
-  }
+  socket.emit("move", move.san);
 }
 
 // handle mouse over a square by showing possible moves
@@ -308,17 +292,32 @@ function onSnapEnd() {
   board.position(game.fen());
 }
 
-// setting board config
-var config = {
-  draggable: true,
-  position: "start",
-  pieceTheme: "images/pieces/{piece}.png",
-  onDragStart: onDragStart,
-  onDrop: onDrop,
-  onMouseoutSquare: onMouseoutSquare,
-  onMouseoverSquare: onMouseoverSquare,
-  onSnapEnd: onSnapEnd,
-};
+// update page after a move is made
+function updateBoard(fen) {
+  // update board
+  // console.log("updateBoard");
+  if(fen != game.fen()) {
+    // console.log('saving fen');
+    lastFen = game.fen();
 
-// initializing board with config
-board = Chessboard("myBoard", config);
+    game.load(fen);
+    board.position(fen);
+  }
+
+  // setting h2 color based on game turn
+  const h2White = document.getElementById("h2White");
+  const h2Black = document.getElementById("h2Black");
+  if (game.turn() === "w") {
+    // get h2 with id h2White
+    h2White.classList.add("colored");
+    h2Black.classList.remove("colored");
+  } else {
+    h2Black.classList.add("colored");
+    h2White.classList.remove("colored");
+  }
+  
+  //check if game is finished, if so, show reason
+  if (game.game_over()) {
+    alert(reasonGameOver());
+  }
+}
