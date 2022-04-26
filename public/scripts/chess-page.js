@@ -12,6 +12,7 @@ var socket = io();
 var side;
 var turn = game.turn();
 var lastFen = "";
+var finished = false;
 
 var topParagraph = document.getElementById("top");
 
@@ -40,6 +41,9 @@ socket.on("room_status", function (room) {
     game.load(room.fen);
     board.position(room.fen);
   }
+  // clearing flag for game over
+  finished = false;
+
   // creating elements to display
   var h1 = document.createElement("h1");
   var h2White = document.createElement("h2");
@@ -317,7 +321,8 @@ function updateBoard(fen) {
   }
   
   //check if game is finished, if so, show reason
-  if (game.game_over()) {
+  if (game.game_over() && !finished) {
     alert(reasonGameOver());
+    finished = true;
   }
 }
