@@ -106,3 +106,6 @@ button {
   top: 2px;
   left: 2px;
 }
+.highlight-square {
+  box-shadow: inset 0 0 3px 3px orange;
+}
