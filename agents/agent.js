@@ -7,7 +7,7 @@ const pool = workerpool.pool('./agents/worker.js');
 class Agent {
   constructor(options) {
     this.options = options;
-    this.socket = io('https://chess.fratorgano.me');
+    this.socket = io('http://localhost:3001');
     console.log('[Agent] New agent with algorithm:', this.options.algorithm);
   }
 
@@ -29,10 +29,14 @@ class Agent {
         console.log('[Agent] Its my turn');
 
         // find move with a worker so we don't block the main thread
-        pool.exec(this.options.algorithm, [fen, this.options])
-          .then((move) => {
-            game.move(move);
-            socket.emit('move', move);
+        pool.exec(this.options.algorithm, [fen, this.options, this.lastResult])
+          .then((result) => {
+            setTimeout(() => {
+              this.lastResult = result;
+              const { mov } = result;
+              game.move(mov);
+              socket.emit('move', mov);
+            }, 100);
           })
           .catch((err) => {
             console.error('Worker error:', err);
@@ -58,7 +62,7 @@ class Agent {
       }
     });
 
-    socket.onAny((event, ...args) => {
+    socket.onAny((event, ..._args) => {
       console.log(`[Agent] Got ${event}`);
     });
   }

@@ -1,9 +1,10 @@
-const seedrandom = require('seedrandom');
-const { Chess } = require('chess.js');
+// const seedrandom = require('seedrandom');
+// const { Chess } = require('chess.js');
+const { negamax_move } = require('wasm-chess-algorithms');
 
-const { chooseEval } = require('./evaluate');
+// const { chooseEval } = require('./evaluate');
 
-function negamax(fen, rng, evalFun, depth, alpha, beta, prevMoves) {
+/* function negamax(fen, rng, evalFun, depth, alpha, beta, prevMoves) {
   const game = new Chess(fen);
   if (depth === 0 || game.game_over()) {
     return {
@@ -26,12 +27,12 @@ function negamax(fen, rng, evalFun, depth, alpha, beta, prevMoves) {
       max = best.score;
       bestMoves = best.moves;
     }
-    /* if (best.score > alphaV) {
+    if (best.score > alphaV) {
       alphaV = best.score;
     }
     if (alphaV >= beta) {
       break;
-    } */
+    }
   }
   return {
     score: max,
@@ -64,18 +65,27 @@ function rootnegamax(fen, rng, evalFun, depth = 3) {
   // console.log(bestMoves);
   // console.log(max);
   return bestMoves[Math.floor(rng() * bestMoves.length)];
-}
+} */
 
-function chooseMove(fen, options) {
-  const rng = seedrandom(options.seed);
+function chooseMove(fen, options, _lastResult) {
+  /*  const rng = seedrandom(options.seed);
   const evalFun = chooseEval(options.evaluatorString);
   const { depth } = options;
 
-  const move = rootnegamax(fen, rng, evalFun, depth);
+  const move = rootnegamax(fen, rng, evalFun, depth); */
+  console.log(options);
+  const move = negamax_move(fen, BigInt(1), BigInt(options.depth));
+  console.log(move);
 
-  return move;
+  return {
+    mov: move,
+  };
 }
 module.exports = {
   chooseMove,
 };
-// chooseMove('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', '123456789');
+/* console.time('oldFunc');
+// oldfunc();
+console.log(chooseMove('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', { seed: '123456789', evaluatorString: '', depth: 4 }));
+
+console.timeEnd('oldFunc'); */

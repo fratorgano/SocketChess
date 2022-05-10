@@ -70,7 +70,7 @@ io.on('connection', (socket) => {
     if (type === 'single') {
       const options = {
         algorithm: algorithmName,
-        seed: 'seed',
+        seed: 1,
         evaluatorString: '',
         depth,
         time,

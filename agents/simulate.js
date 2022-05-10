@@ -6,6 +6,7 @@ const negamaxAlgo = require('./algorithms/negamax');
 
 function simulateGame(algo1, algo2, algorithmOptions) {
   const game = new Chess();
+
   while (!game.game_over()) {
     if (game.turn() === 'w') {
       const move = algo1.chooseMove(game.fen(), algorithmOptions);
@@ -21,6 +22,8 @@ function simulateGame(algo1, algo2, algorithmOptions) {
       winner: game.turn() === 'w' ? 'b' : 'w',
       score: game.turn() === 'w' ? -1 : 1,
       reason: 'checkmate',
+      length: game.history().length,
+      pgn: game.pgn(),
     };
   }
   if (game.in_stalemate()) {
@@ -28,6 +31,8 @@ function simulateGame(algo1, algo2, algorithmOptions) {
       winner: null,
       score: 0,
       reason: 'stalemate',
+      length: game.history().length,
+      pgn: game.pgn(),
     };
   }
   if (game.in_threefold_repetition()) {
@@ -35,6 +40,8 @@ function simulateGame(algo1, algo2, algorithmOptions) {
       winner: null,
       score: 0,
       reason: 'threefold repetition',
+      length: game.history().length,
+      pgn: game.pgn(),
     };
   }
   if (game.in_insufficient_material()) {
@@ -42,6 +49,8 @@ function simulateGame(algo1, algo2, algorithmOptions) {
       winner: null,
       score: 0,
       reason: 'insufficient material',
+      length: game.history().length,
+      pgn: game.pgn(),
     };
   }
   if (game.in_fifty_moves()) {
@@ -49,6 +58,8 @@ function simulateGame(algo1, algo2, algorithmOptions) {
       winner: null,
       score: 0,
       reason: 'fifty moves',
+      length: game.history().length,
+      pgn: game.pgn(),
     };
   }
 }
@@ -65,9 +76,10 @@ function simulate(algo1, algo2, algorithmOptions, iterations = 100) {
   return results;
 }
 
-const results = simulate(randomAlgo, negamaxAlgo, { seed: 'seed', depth: 2, eval: '' }, 10);
+const results = simulate(negamaxAlgo, randomAlgo, { seed: 'seed1', depth: 3, eval: '' }, 1);
 // pretty print results
 for (let index = 0; index < results.length; index += 1) {
   const game = results[index];
-  console.log(`${index}: ${game.score} - ${game.reason}`);
+  console.log(`${index}: ${game.score} - ${game.reason} - ${game.length}`);
+  console.log(game.pgn);
 }
