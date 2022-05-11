@@ -54,9 +54,11 @@ button {
   text-align: center;
   position: absolute;
   left: 50%;
-  top: 50%;
+  /* top: 50%;
   -webkit-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%); */
+  -webkit-transform: translate(-50%,0);
+  transform: translate(-50%, 0);
 }
 .centered-horizontal {
   text-align: center;
@@ -108,4 +110,13 @@ button {
 }
 .highlight-square {
   box-shadow: inset 0 0 3px 3px orange;
+}
+.board {
+  width: 35%;
+}
+
+@media (max-width: 1000px) {
+  .board {
+    width: 95%;
+  }
 }

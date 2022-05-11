@@ -207,15 +207,15 @@ socket.on('side', (sideServer) => {
   }
 });
 
+function removeHighlights() {
+  $('#myBoard .square-55d63').removeClass('highlight-square');
+}
+
 socket.on('update_board', (fen) => {
   // update board
   updateBoard(fen);
   removeHighlights();
 });
-
-function removeHighlights() {
-  $('#myBoard .square-55d63').removeClass('highlight-square');
-}
 
 socket.on('move', (move) => {
   // highlight last move
@@ -345,3 +345,8 @@ const config = {
 
 // initializing board with config
 board = Chessboard('myBoard', config);
+
+window.onresize = () => {
+  config.position = game.fen();
+  board = Chessboard('myBoard', config);
+};
