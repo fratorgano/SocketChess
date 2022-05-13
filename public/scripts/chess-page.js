@@ -42,6 +42,19 @@ function reasonGameOver() {
   return '';
 }
 
+function findKing(color) {
+  const b = game.board();
+  for (let i = 0; i < 8; i += 1) {
+    for (let j = 0; j < 8; j += 1) {
+      if (b[i][j] != null && b[i][j].type === 'k' && b[i][j].color === color) {
+        // return letter + number
+        return `${String.fromCharCode(97 + j)}${8 - i}`;
+      }
+    }
+  }
+  return null;
+}
+
 // update page after a move is made
 function updateBoard(fen) {
   // update board
@@ -64,6 +77,16 @@ function updateBoard(fen) {
   } else {
     h2Black.classList.add('colored');
     h2White.classList.remove('colored');
+  }
+  // if someone is in check, highlight king square
+  if (game.in_check()) {
+    console.log('in check');
+    console.log(game.turn());
+    const kingSquare = findKing(game.turn());
+    console.log(kingSquare);
+    $(`#myBoard .square-${kingSquare}`).addClass('check-square');
+  } else {
+    $('.check-square').removeClass('check-square');
   }
 
   // check if game is finished, if so, show reason
