@@ -34,8 +34,8 @@
         
         <div id="singleplayerTab" class="tabcontent centered-table">
             <h3>Choose an Algorithm</h3>
-            <select name="algorithm" id="Algorithm">
-              <option value="random">Random</option>
+            <select name="algorithm" id="Algorithm" onchange="updateSingleplayerOptions()">
+              <option value="random" selected>Random</option>
               <option value="negamax">Negamax</option>
               <option value="negamax_a_b">Negamax-Alpha-Beta</option>
               <option value="negamax_a_b_table">Negamax-Alpha-Beta Table</option>
@@ -45,11 +45,15 @@
               <option value="iterative_deepening_order">Iterative deepening with Ordering</option>
             </select>
             <br />
-            <h3>Choose a Depth</h3>
-            <input type="number" name="depth" id="Depth" min="0" max="10" autocomplete="off" placeholder="Depth"/>
-            <br />
-            <h3>Choose a Time (ms)</h3>
-            <input type="number" name="time" id="Time" min="1" max="10000" autocomplete="off" placeholder="Time (ms)"/>
+            <div id="depthDiv" hidden>
+              <h3>Choose a Depth</h3>
+              <input type="number" name="depth" id="Depth" min="0" max="10" autocomplete="off" placeholder="Depth"/>
+              <br />
+            </div>
+            <div id="timeDiv" hidden>
+              <h3>Choose a Time (ms)</h3>
+              <input type="number" name="time" id="Time" min="1" max="10000" autocomplete="off" placeholder="Time (ms)"/>
+            </div>
             <button id="createRoomButton" onclick="createRoom('single')" class="submit">
               Create room
             </button>

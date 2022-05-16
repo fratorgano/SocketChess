@@ -96,3 +96,40 @@ socket.on('room_list', (roomListServer) => {
     // roomList.appendChild(roomItem);
   }
 });
+
+function updateSingleplayerOptions() {
+  // get value of Algorithm select
+  const algorithm = document.getElementById('Algorithm').value;
+  console.log('algorithm: ', algorithm);
+  const depth = document.getElementById('depthDiv');
+  const time = document.getElementById('timeDiv');
+  switch (algorithm) {
+    case 'random':
+      // hide all options
+      depth.setAttribute('hidden', 'true');
+      time.setAttribute('hidden', 'true');
+      break;
+    case 'negamax':
+    case 'negamax_a_b':
+    case 'negamax_a_b_table':
+    case 'negamax_a_b_quiescent':
+      // show only Depth option
+      console.log('showing only Depth option');
+      depth.removeAttribute('hidden');
+      time.setAttribute('hidden', 'true');
+      break;
+    case 'iterative_deepening':
+    case 'iterative_deepening_table':
+    case 'iterative_deepening_order':
+      // show only Time option
+      console.log('showing only Time option');
+      depth.setAttribute('hidden', 'true');
+      time.removeAttribute('hidden');
+      break;
+    default:
+      console.log('show all options');
+      depth.removeAttribute('hidden');
+      time.removeAttribute('hidden');
+      break;
+  }
+}
