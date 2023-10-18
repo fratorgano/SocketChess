@@ -6,6 +6,8 @@ const http = require('http');
 const server = http.createServer(app);
 const { Chess } = require('chess.js');
 const { Server } = require('socket.io');
+const seedrandom = require('seedrandom');
+const rng = seedrandom();
 
 const io = new Server(server);
 
@@ -70,7 +72,7 @@ io.on('connection', (socket) => {
     if (type === 'single') {
       const options = {
         algorithm: algorithmName,
-        seed: 1,
+        seed: rng.int32(),
         evaluatorString: '',
         depth,
         time,

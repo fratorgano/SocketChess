@@ -74,7 +74,7 @@ function chooseMove(fen, options, _lastResult) {
 
   const move = rootnegamax(fen, rng, evalFun, depth); */
   console.log(options);
-  const move = negamax_move(fen, BigInt(1), BigInt(options.depth));
+  const move = negamax_move(fen, BigInt(options.seed), BigInt(options.depth));
   console.log(move);
 
   return {
